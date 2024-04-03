@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "ingenuity-ml"
+version = "0.1.0"
+description = ""
+authors = ["mgbvox <mgbvox@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+torch = "^2.2.2"
+torchaudio = "^2.2.2"
+torchvision = "^0.17.2"
+lightning = "^2.2.1"
+jupyter = "^1.0.0"
+black = {extras = ["jupyter"], version = "^24.3.0"}
+ruff = "^0.3.5"
+opencv-python = "^4.9.0.80"
+matplotlib = "^3.8.3"
+tensorboard = "^2.16.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
