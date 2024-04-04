@@ -30,7 +30,6 @@ class ConvBlock(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         x = self.conv(x)
         x = F.relu(x, inplace=False)
-        # x = self.dropout(x)
         return x
 
 
@@ -45,14 +44,17 @@ class ClassifierHead(nn.Module):
         x = self.layer_in(self.flatten(x))
         x = F.relu(x)
         x = self.layer_out(x)
-        # x = F.relu(x)
         return x
 
 
 class MNISTClassifier(L.LightningModule):
-    def __init__(self, classifier_module: nn.Module):
+    def __init__(self):
         super().__init__()
-        self.classifier = classifier_module
+        self.classifier = nn.Sequential(
+            ConvBlock(1, 64),
+            *[ConvBlock(64, 64, kernel_size=3) for _ in range(5)],
+            ClassifierHead(n_input=64 * 28 * 28, n_hidden=120, n_classes=10)
+        )
 
     def training_step(self, batch, batch_idx):
         # training_step defines the train loop.
@@ -62,31 +64,36 @@ class MNISTClassifier(L.LightningModule):
         loss = F.cross_entropy(y_hat, y)
         # Logging to TensorBoard (if installed) by default
         self.log("train_loss", loss)
-        print(loss)
+        # print(loss)
         return loss
 
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):
+        x, _ = batch
+        return self.classifier(x).argmax(1)
+
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = optim.Adam(self.parameters(), lr=1e-4)
         return optimizer
 
 
-def main():
-    n_layer = 5
+def train(batch_size: int = 256, epochs: int = 10):
 
     dataset = MNIST(os.getcwd(), download=True, transform=ToTensor())
-    train_loader = DataLoader(dataset, batch_size=128, shuffle=True, num_workers=7, persistent_workers=True)
-    classifier_module = nn.Sequential(
-        ConvBlock(1, 64),
-        *[ConvBlock(64, 64, kernel_size=3) for _ in range(n_layer)],
-        ClassifierHead(n_input=64 * 28 * 28, n_hidden=120, n_classes=10)
+    train_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=7,
+        persistent_workers=True,
     )
 
-    model = MNISTClassifier(classifier_module)
+    model = MNISTClassifier()
     # train the model (hint: here are some helpful Trainer arguments for rapid idea iteration)
-    trainer = L.Trainer(limit_train_batches=100, max_epochs=10)
+    trainer = L.Trainer(limit_train_batches=100, max_epochs=epochs)
     trainer.fit(model=model, train_dataloaders=train_loader)
-    
+
+    return model, dataset, train_loader, trainer
 
 
 if __name__ == "__main__":
-    main()
+    train()
